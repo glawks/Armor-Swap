@@ -1,0 +1,54 @@
+{
+  "format": 2,
+  "id": "armor-swap",
+  "name": "Armor Swap",
+  "version": "0.1.0-dev.1",
+  "author": "glawks",
+  "description": "Experimental RAC2 visual armour selector that preserves purchased armour protection.",
+  "license": "MIT",
+  "homepage": "https://github.com/glawks/Armor-Swap",
+  "api": "1.20",
+  "games": {
+    "rac2": [
+      "ntsc",
+      "pal",
+      "ntsc2"
+    ]
+  },
+  "multiplayer": "cosmetic",
+  "settings": [
+    {
+      "key": "appearance",
+      "name": "Visible armour",
+      "type": "choice",
+      "default": "auto",
+      "description": "Cosmetic only. Choose a previously acquired armour; applies after restarting the game. Unavailable tiers are ignored.",
+      "choices": [
+        {
+          "value": "auto",
+          "name": "Automatic (original game)"
+        },
+        {
+          "value": "0",
+          "name": "Original suit (no armour)"
+        },
+        {
+          "value": "1",
+          "name": "Armour tier 1"
+        },
+        {
+          "value": "2",
+          "name": "Armour tier 2"
+        },
+        {
+          "value": "3",
+          "name": "Armour tier 3"
+        },
+        {
+          "value": "4",
+          "name": "Armour tier 4"
+        }
+      ]
+    }
+  ]
+}
