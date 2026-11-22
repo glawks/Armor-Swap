@@ -1,0 +1,2 @@
+# Ensure cross-platform packaged text has identical bytes on every runner.
+* text=auto eol=lf
