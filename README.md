@@ -1,46 +1,43 @@
-# Armor Swap (experimental)
+# Armor Swap — RAC2 armour transmog
 
-RAC2 armour transmog: select how Ratchet looks **without changing the saved armour tier or its damage reduction**. The first visual model swap was confirmed working in-game; the **new Oozla popup is a test feature, not yet tested**.
+Change Ratchet's **visible** armour without touching the strongest armour purchased or its damage reduction. The visual model-swapping mechanism has been tested in-game. This **v0.1.0-dev.3 test** replaces the old invisible HUD/Select popup with a proper drawn vendor-style panel.
 
-## Oozla landing test vendor
+## Oozla gameplay vendor — test
 
-The prototype shows an on-screen **ARMOUR SWAP** popup near the ship landing platform/walkway on **Oozla**, based on documented level-start coordinates (293.84, 411.66, 115).
+- **Approach the ship landing bars/walkway on Planet Oozla.** The trigger uses a *tight* radius (default 8 units) and vertical limit (5 units), no longer the old 45-unit area.
+- When within range, a dark-blue **Y / TRIANGLE : ARMOUR SWAP** interaction prompt appears.
+- **Press Triangle / Xbox Y** to open the full panel; D-pad Up/Down moves the selection, Cross/Xbox A equips the selected appearance, Circle/Xbox B or Triangle closes.
+- The modal only captures pad buttons while open and inside the trigger area. **Select / Back is not used.** Outside the trigger area, normal controls work.
+- Only armour already purchased can be selected; protection and purchases remain untouched.
 
-- **Auto-popup:** When entering the landing area it should appear once (turn off `Oozla test popup` in launcher settings if unwanted).
-- **Reopen:** Press **Select / Back** while near the ship.
-- **Navigate:** D-pad Up/Down; **Cross / Xbox A** to equip; **Circle / Xbox B**, Triangle or Select to close.
-- **Armour available:** Default (best owned), Original suit, Tetrafiber, Duraplate, Electrosteel, Carbonox. Only tiers already acquired are selectable. The player keeps the strongest purchased armour's protection.
+### Position calibration (important for this test)
 
-The menu consumes gamepad buttons and sticks while open so moving the selection shouldn't also board the ship or move Ratchet. It is a **gameplay HUD text popup**, not yet a physical vendor NPC or a native shop panel, and doesn't charge bolts.
+The first trigger centre defaults to RAC2's documented Oozla ship arrival coordinates `(293.84, 411.66, 115)`. **The bars in the screenshot might be offset from that position.** To locate the popup *exactly* where Ratchet is standing beside your chosen bars:
 
-## Persistence and protection
+1. On Oozla, stand at the desired interaction spot by the bars.
+2. Hold **L3 + R3** and press **Triangle / Y** (pressing both sticks and Triangle at once). This moves the vendor trigger centre to Ratchet's current position and saves it in the launcher's settings.
+3. Move away, return to the bars and check the Y/Triangle prompt. Regular Triangle/Y should open the vendor there, not elsewhere.
 
-In-game armour choices are stored in **OpenRAC's mod-specific per-save data**. **Save normally in-game** to keep the cosmetic selection for your next session. Existing saves without a cosmetic choice fall back to the launcher's `Visible armour` setting. Disabling this mod does not overwrite your game's actual armour. The model is loaded using RAC2's own armouring routine, without modifying the protection/stat field.
+While testing, a small **X/Y/Z and DIST** readout appears at the top-left of the Oozla screen to help diagnose proximity. Turn off `Show Oozla test coordinates` in the launcher when no longer needed. You can also set the `Vendor position X/Y/Z` fields and radius manually. The new location is independent of game saves, while selected armour cosmetics are stored per save.
 
-## Testing
+### What changed from v0.1.0-dev.2
 
-1. Back up your save. Get the newest **dev** workflow artifact at [GitHub Actions](https://github.com/glawks/Armor-Swap/actions?query=branch%3Adev): `mod-release` contains a combined ZIP for all six platforms.
-2. Install the combined ZIP through the OpenRAC launcher. Travel to Oozla, near the ship where your screenshots were taken.
-3. Check whether the popup appears, whether the choices and button prompts respond, and whether the selected look appears immediately.
-4. Exit and reopen the popup, travel to another planet and back, then save and reload. Verify that the strongest purchased armour still grants its normal protection.
+- Removed the auto-opening, invisible HUD text popup.
+- Removed Select/Back as an interaction key.
+- Draws a **real overlay** with background, title, selected-row highlight, hints and the current protection value, using OpenRAC's supported game overlay API.
+- Swallows input **only** for a visible popup or its dedicated interaction/calibration press; the rest of the controls are passed through unchanged.
+- Only enables this on Oozla during normal gameplay; not in the map, another menu, cutscenes, or planets elsewhere.
 
-If no popup appears, the proximity radius (45 units in the horizontal plane, 24 units vertically) may require calibration. Share a log and ideally a position readout. These builds are untested development artifacts, not stable releases.
+### Limits
 
-## Supported
+This is a **vendor-style popup overlay**, not yet a placed 3D NPC or the game's underlying armour vendor script. There is no bolt purchase. OpenRAC's native `ui_page` API is opened from the game's existing options menus rather than directly from arbitrary gameplay, so an overlay is the stable way to test an in-world trigger. The panel's position and input behaviour still need in-game verification.
 
-RAC2 NTSC-U v1.01, PAL, NTSC-U v2.00. OpenRAC mod SDK/API 1.20. Native CI builds for Windows x64, Linux x64/ARM64, macOS x64/ARM64, and Android ARM64.
+## Install and test
 
-`main` is intentionally not released; `dev` builds test artifacts and does not create a public GitHub Release.
+From the successful `dev` [GitHub Actions build](https://github.com/glawks/Armor-Swap/actions?query=branch%3Adev), download the `mod-release` artifact, extract it and install `armor-swap-0.1.0-dev.3.zip` in OpenRAC.
 
-## Development
+Back up a save before testing. Change the appearance, move away and come back, then save/reload and confirm both the cosmetic selection and damage reduction. Changes to appearance are saved with **mod-specific save data**, not the base game armour state.
 
-```sh
-python tools/fetch_sdk.py
-cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
-cmake --build build --parallel
-ctest --test-dir build --output-on-failure
-```
+OpenRAC SDK 1.20, RAC2 NTSC/PAL/NTSC2. Six-platform CI (Windows, Linux, macOS and Android ARM64). `main` remains untouched; test builds only from `dev`.
 
-The save's equipped armour data is always read-only: NTSC `0x001A7A18`, PAL `0x001A7AA0`, NTSC2 `0x001A7A20`. Visual model pack: NTSC/NTSC2 `0x001A7290`, PAL `0x001A7310`.
-
-MIT licensed. No copyrighted game assets included.
+MIT licensed; no copyrighted game assets included.

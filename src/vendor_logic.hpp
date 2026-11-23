@@ -3,22 +3,26 @@
 #include <cmath>
 #include <cstdint>
 namespace armor_swap {
-// Documented Oozla ship landing point (level 1), RAC2_SAVE_FORMAT.md.
-constexpr float kShipX = 293.84f, kShipY = 411.66f, kShipZ = 115.0f;
-constexpr float kRadius = 45.0f, kVertical = 24.0f;
+struct Zone {
+    float x, y, z, radius, vertical;
+};
+inline float distance_xy(float x, float y, const Zone& zone) noexcept {
+    const float dx = x - zone.x, dy = y - zone.y;
+    return std::sqrt(dx * dx + dy * dy);
+}
+inline bool in_zone(float x, float y, float z, const Zone& zone) noexcept {
+    return std::isfinite(x) && std::isfinite(y) && std::isfinite(z) &&
+        std::isfinite(zone.x) && std::isfinite(zone.y) && std::isfinite(zone.z) &&
+        zone.radius >= 0 && zone.vertical >= 0 &&
+        distance_xy(x, y, zone) <= zone.radius &&
+        std::fabs(z - zone.z) <= zone.vertical;
+}
 constexpr const char* kNames[] = {
     "Original suit", "Tetrafiber", "Duraplate", "Electrosteel", "Carbonox"
 };
-inline bool near_landing(float x, float y, float z) noexcept {
-    if (!std::isfinite(x) || !std::isfinite(y) || !std::isfinite(z)) return false;
-    const float dx = x - kShipX, dy = y - kShipY;
-    return dx * dx + dy * dy <= kRadius * kRadius &&
-        std::fabs(z - kShipZ) <= kVertical;
-}
 constexpr int row_count(int owned) noexcept {
     return owned >= 0 && owned <= 4 ? owned + 2 : 0;
 }
-// Row 0 is the strongest/default look; rows 1..5 are skins 0..4.
 constexpr int row_to_tier(int row, int owned) noexcept {
     return row >= 0 && row < row_count(owned) ? row - 1 : -2;
 }
@@ -29,9 +33,9 @@ constexpr int cycle_row(int row, int delta, int owned) noexcept {
     const int count = row_count(owned);
     return count ? (row + delta + count) % count : 0;
 }
-constexpr std::uint16_t kSelect = 0x0001u;
-constexpr std::uint16_t kUp = 0x0010u, kDown = 0x0040u;
+constexpr std::uint16_t kL3 = 0x0002u, kR3 = 0x0004u;
 constexpr std::uint16_t kTriangle = 0x1000u, kCircle = 0x2000u, kCross = 0x4000u;
+constexpr std::uint16_t kUp = 0x0010u, kDown = 0x0040u;
 constexpr std::uint16_t just_pressed(std::uint16_t now, std::uint16_t before) noexcept {
     return now & static_cast<std::uint16_t>(~before);
 }

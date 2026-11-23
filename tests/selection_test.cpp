@@ -34,10 +34,12 @@ int main() {
     CHECK(armor_swap::cycle_row(5, 1, 4) == 0);
     CHECK(armor_swap::row_for(2, 4) == 3);
     CHECK(armor_swap::row_for(4, 2) == 0);
-    CHECK(armor_swap::near_landing(293.84f, 411.66f, 115.0f));
-    CHECK(armor_swap::near_landing(310.f, 420.f, 118.f));
-    CHECK(!armor_swap::near_landing(400.f, 411.66f, 115.f));
-    CHECK(!armor_swap::near_landing(293.84f, 411.66f, 160.f));
+    const armor_swap::Zone zone{293.84f, 411.66f, 115.0f, 8.0f, 5.0f};
+    CHECK(armor_swap::in_zone(293.84f, 411.66f, 115.0f, zone));
+    CHECK(armor_swap::in_zone(299.f, 411.66f, 115.f, zone));
+    CHECK(!armor_swap::in_zone(310.f, 420.f, 118.f, zone));
+    CHECK(!armor_swap::in_zone(293.84f, 411.66f, 160.f, zone));
+    CHECK(!armor_swap::in_zone(400.f, 411.66f, 115.f, zone));
     CHECK(armor_swap::just_pressed(0x40, 0) == 0x40);
     CHECK(armor_swap::just_pressed(0x40, 0x40) == 0);
     return 0;
