@@ -16,16 +16,16 @@
 namespace {
 struct Disc {
     const char* version;
-    std::uint32_t equipped, loaded;
+    std::uint32_t progress, equipped, loaded;
     std::array<std::uint32_t, 4> skin_flags;
     const char* load_function;
 };
 constexpr Disc kDiscs[] = {
-    {"ntsc", 0x001A7A18u, 0x001A7290u,
+    {"ntsc", 0x001A79F8u, 0x001A7A18u, 0x001A7290u,
         {0x001A7A49u, 0x001A7A42u, 0x001A7A4Bu, 0x001A7A4Au}, "func_002923C0"},
-    {"pal", 0x001A7AA0u, 0x001A7310u,
+    {"pal", 0x001A7A80u, 0x001A7AA0u, 0x001A7310u,
         {0x001A7AD1u, 0x001A7ACAu, 0x001A7AD3u, 0x001A7AD2u}, "func_00292CD0"},
-    {"ntsc2", 0x001A7A20u, 0x001A7290u,
+    {"ntsc2", 0x001A7A00u, 0x001A7A20u, 0x001A7290u,
         {0x001A7A51u, 0x001A7A4Au, 0x001A7A53u, 0x001A7A52u}, "func_00292C70"}
 };
 using LoadModel = void (*)(std::uint32_t);
@@ -41,6 +41,7 @@ struct Session {
     bool near = false, popup = false, overlay_installed = false;
     bool debug_coords = false, force_restore = false;
     int owned = -1, last_logged_protection = -1, row = 0, warmup = 0, last_level = -2;
+    int diagnosed_level = -2;
     int failed_level = -2, failed_from = -1, failed_to = -1;
     std::uint16_t last_buttons = 0;
     std::uint32_t loads = ~0u;
@@ -128,9 +129,36 @@ void draw_overlay(void*, const openrac_overlay* overlay) {
              "A / CROSS : EQUIP       B / CIRCLE : EXIT");
 }
 
+// Relocate the BEGINNING of the save's progress block, then take its armour
+// offset. Relocating the inner field independently can find a different global
+// pair when the level's data is relocated. This is the same method as the
+// OpenRAC NG++ RAC2 GameView, which reads progress + 0x20.
 int get_owned() {
-    const auto addr = s.mod->relocate(s.disc->equipped);
-    return addr ? s.mod->memory().read<std::int16_t>(addr) : -1;
+    const auto base = s.mod->relocate(s.disc->progress);
+    return base ? s.mod->memory().read<std::int16_t>(base + 0x20u) : -1;
+}
+
+void diagnose_armour_address() {
+    const auto base = s.mod->relocate(s.disc->progress);
+    const auto direct = s.mod->relocate(s.disc->equipped);
+    if (!base || !direct) {
+        s.mod->warn("Armour address diagnostic: progress or field did not relocate");
+        return;
+    }
+    const auto progress_address = base + 0x20u;
+    const int progress_armour = s.mod->memory().read<std::int16_t>(progress_address);
+    const int direct_armour = s.mod->memory().read<std::int16_t>(direct);
+    char info[230];
+    std::snprintf(info, sizeof info,
+                  "Armour address check: progress=0x%08X, armour=0x%08X value=%d; "
+                  "direct=0x%08X value=%d",
+                  static_cast<unsigned>(base), static_cast<unsigned>(progress_address),
+                  progress_armour, static_cast<unsigned>(direct), direct_armour);
+    s.mod->info(info);
+    if (progress_address != direct) {
+        s.mod->warn("Direct field relocation differs from saved progress block; "
+                    "using progress + 0x20 for armour protection");
+    }
 }
 bool special_skin() {
     for (auto raw : s.disc->skin_flags) {
@@ -241,6 +269,7 @@ void on_frame() {
     }
     if (status.level != s.last_level) {
         s.last_level = status.level;
+        s.diagnosed_level = -2;
         s.warmup = 0;
         s.failed_level = -2;
     }
@@ -251,6 +280,10 @@ void on_frame() {
     }
     if (s.warmup < kWarmup) ++s.warmup;
     s.owned = get_owned();
+    if (status.level != s.diagnosed_level) {
+        s.diagnosed_level = status.level;
+        diagnose_armour_address();
+    }
     // This signed 16-bit field is what RAC2's AdjustPlayerHealth uses,
     // unlike the loaded model pack (which can be any chosen appearance).
     if (s.owned >= 0 && s.owned <= 4 && s.owned != s.last_logged_protection) {
@@ -302,7 +335,7 @@ void load(openrac::Mod& mod) {
     mod.on_save_data([] { restore_from_save(); });
     mod.on_pad(on_pad);
     mod.on_frame(on_frame);
-    mod.info("Armor Swap 0.1.0-dev.5: all visual armour tiers enabled, protection value read-only");
+    mod.info("Armor Swap 0.1.0-dev.6: progress-based protection read and relocation diagnostics");
 }
 }
-OPENRAC_MOD_CPP("armor-swap", "0.1.0-dev.5", load)
+OPENRAC_MOD_CPP("armor-swap", "0.1.0-dev.6", load)

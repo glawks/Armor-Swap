@@ -1,6 +1,6 @@
 # Armor Swap — RAC2 armour transmog
 
-Change Ratchet's **visible** armour without touching the strongest armour purchased or its damage reduction. The visual model-swapping mechanism has been tested in-game. This **v0.1.0-dev.5 test** keeps the working Triangle/Y vendor popup and permits all cosmetic armour looks on every save.
+Change Ratchet's **visible** armour without touching the strongest armour purchased or its damage reduction. The visual model-swapping mechanism has been tested in-game. This **v0.1.0-dev.6 test** keeps the working Triangle/Y vendor popup and permits all cosmetic armour looks on every save.
 
 ## Oozla gameplay vendor — test
 
@@ -14,7 +14,7 @@ Change Ratchet's **visible** armour without touching the strongest armour purcha
 
 **Every appearance is available immediately**: Original suit, Tetrafiber, Duraplate, Electrosteel, and Carbonox. The `Default (strongest)` option switches the visual model back to the armour the game currently records as equipped. The player's actual damage reduction remains whatever the game already had.
 
-The panel's **Saved protection** line reflects the game's native protection field (a signed 16-bit value at the RAC2 equipped-armour address, the same field used by `AdjustPlayerHealth`). It does **not** represent which cosmetic appearances are unlocked. If a genuinely fresh save still reports Carbonox, check the OpenRAC game log for `Armour protection in game memory is tier`. That indicates what the game reports, rather than what this mod has granted; this mod never writes the protection field.
+The panel's **Saved protection** line reflects the signed 16-bit armour field at offset `+0x20` within RAC2's **saved progress block**. It is read via the relocated progress-block base (as in OpenRAC NG++), rather than independently relocating the armour field. It does **not** represent which cosmetic appearances are unlocked. The previously used *directly relocated field* reported Carbonox on a fresh Oozla save, which may be an address-mapping issue. This build logs both the relocated progress-block address and the separately relocated armour address, with their values, once per loaded level. Look for `Armour address check` in the OpenRAC log. **If both values still report 4 on your fresh save**, please check the Save Editor's Armour field as well: the cause may be in the save or game state rather than the menu itself. This mod never writes to that game field.
 
 ### Fixed location by the bars
 
