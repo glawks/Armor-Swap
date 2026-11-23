@@ -37,9 +37,9 @@ struct Session {
     const Disc* disc = nullptr;
     LoadModel loader = nullptr;
     std::string fallback = "auto", choice = "auto";
-    armor_swap::Zone zone{293.84f, 411.66f, 115.0f, 8.0f, 5.0f};
+    armor_swap::Zone zone{297.0f, 418.0f, 115.0f, 8.0f, 5.0f};
     bool near = false, popup = false, overlay_installed = false;
-    bool calibrate = true, debug_coords = true, force_restore = false;
+    bool debug_coords = false, force_restore = false;
     int owned = -1, row = 0, warmup = 0, last_level = -2;
     int failed_level = -2, failed_from = -1, failed_to = -1;
     std::uint16_t last_buttons = 0;
@@ -165,23 +165,6 @@ void choose() {
     s.popup = false;
 }
 
-void set_vendor_location() {
-    if (!s.calibrate || !s.pose_valid || s.pose.level != kOozla) return;
-    s.zone.x = s.pose.position[0];
-    s.zone.y = s.pose.position[1];
-    s.zone.z = s.pose.position[2];
-    // Also keep the placement on future launches.
-    const bool ok = s.mod->set_setting<double>("vendor_x", s.zone.x) &&
-                    s.mod->set_setting<double>("vendor_y", s.zone.y) &&
-                    s.mod->set_setting<double>("vendor_z", s.zone.z);
-    s.near = true;
-    s.popup = false;
-    s.mod->info("Oozla vendor centred at X=" + std::to_string(s.zone.x) +
-                " Y=" + std::to_string(s.zone.y) +
-                " Z=" + std::to_string(s.zone.z) +
-                (ok ? " (launcher settings saved)" : " (settings could not be saved)"));
-}
-
 void on_pad(int port, std::uint8_t* bytes, int size) {
     if (port != 0 || bytes == nullptr || size < 2) return;
     const auto raw = static_cast<std::uint16_t>(bytes[0]) |
@@ -190,16 +173,10 @@ void on_pad(int port, std::uint8_t* bytes, int size) {
     const auto pressed = armor_swap::just_pressed(buttons, s.last_buttons);
     s.last_buttons = buttons;
 
-    // Never capture input outside a valid location or outside gameplay.
-    // Calibration is an explicit 3-button chord, not an ordinary interaction.
+    // Only Triangle inside the fixed Oozla vendor zone starts this interaction.
+    // Outside that zone every button (including L3, R3 and Select) reaches the game.
     bool consume = false;
-    if (s.calibrate && s.pose_valid && s.pose.level == kOozla &&
-        (buttons & (armor_swap::kL3 | armor_swap::kR3)) ==
-        (armor_swap::kL3 | armor_swap::kR3) &&
-        (pressed & armor_swap::kTriangle)) {
-        set_vendor_location();
-        consume = true;
-    } else if (s.near && s.overlay_installed && s.owned >= 0 && s.owned <= 4) {
+    if (s.near && s.overlay_installed && s.owned >= 0 && s.owned <= 4) {
         if (!s.popup && (pressed & armor_swap::kTriangle)) {
             const int tier = armor_swap::desired_appearance(s.choice, s.owned);
             s.row = armor_swap::row_for(tier, s.owned);
@@ -306,13 +283,9 @@ void load(openrac::Mod& mod) {
     s.mod = &mod; s.disc = disc;
     s.fallback = mod.setting<std::string>("appearance");
     s.choice = s.fallback;
-    s.zone.x = static_cast<float>(mod.setting<double>("vendor_x"));
-    s.zone.y = static_cast<float>(mod.setting<double>("vendor_y"));
-    s.zone.z = static_cast<float>(mod.setting<double>("vendor_z"));
     s.zone.radius = static_cast<float>(mod.setting<double>("vendor_radius"));
     s.zone.vertical = 5.0f;
     s.debug_coords = mod.setting<bool>("debug_coords");
-    s.calibrate = mod.setting<bool>("calibrate");
     s.loader = mod.required_function<LoadModel>(disc->load_function);
     if (!mod.has_overlay() || !mod.on_overlay(draw_overlay))
         throw openrac::Error("Armor Swap requires OpenRAC's in-game overlay API (1.14+)");
@@ -321,7 +294,7 @@ void load(openrac::Mod& mod) {
     mod.on_save_data([] { restore_from_save(); });
     mod.on_pad(on_pad);
     mod.on_frame(on_frame);
-    mod.info("Armor Swap 0.1.0-dev.3: triangle vendor overlay + restricted position");
+    mod.info("Armor Swap 0.1.0-dev.4: Triangle vendor overlay + fixed Oozla bars position");
 }
 }
-OPENRAC_MOD_CPP("armor-swap", "0.1.0-dev.3", load)
+OPENRAC_MOD_CPP("armor-swap", "0.1.0-dev.4", load)

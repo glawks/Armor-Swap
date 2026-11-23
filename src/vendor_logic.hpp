@@ -33,7 +33,6 @@ constexpr int cycle_row(int row, int delta, int owned) noexcept {
     const int count = row_count(owned);
     return count ? (row + delta + count) % count : 0;
 }
-constexpr std::uint16_t kL3 = 0x0002u, kR3 = 0x0004u;
 constexpr std::uint16_t kTriangle = 0x1000u, kCircle = 0x2000u, kCross = 0x4000u;
 constexpr std::uint16_t kUp = 0x0010u, kDown = 0x0040u;
 constexpr std::uint16_t just_pressed(std::uint16_t now, std::uint16_t before) noexcept {

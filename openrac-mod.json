@@ -2,9 +2,9 @@
   "format": 2,
   "id": "armor-swap",
   "name": "Armor Swap",
-  "version": "0.1.0-dev.3",
+  "version": "0.1.0-dev.4",
   "author": "glawks",
-  "description": "Oozla armour vendor-style in-game overlay, Triangle interaction and cosmetic armour selection.",
+  "description": "RAC2 armour appearance selector with Triangle vendor interaction at the Oozla bars.",
   "license": "MIT",
   "homepage": "https://github.com/glawks/Armor-Swap",
   "api": "1.20",
@@ -51,34 +51,6 @@
       ]
     },
     {
-      "key": "vendor_x",
-      "name": "Vendor position X",
-      "type": "float",
-      "default": 293.84,
-      "min": -10000,
-      "max": 10000,
-      "step": 0.01,
-      "description": "Test centre of the interaction area on Oozla (can be set in-game with L3+R3+Triangle)."
-    },
-    {
-      "key": "vendor_y",
-      "name": "Vendor position Y",
-      "type": "float",
-      "default": 411.66,
-      "min": -10000,
-      "max": 10000,
-      "step": 0.01
-    },
-    {
-      "key": "vendor_z",
-      "name": "Vendor position Z",
-      "type": "float",
-      "default": 115,
-      "min": -10000,
-      "max": 10000,
-      "step": 0.01
-    },
-    {
       "key": "vendor_radius",
       "name": "Vendor interaction radius",
       "type": "float",
@@ -86,21 +58,14 @@
       "min": 2,
       "max": 18,
       "step": 1,
-      "description": "Only Triangle inside this many in-game units from the chosen bars will open the vendor."
+      "description": "Triangle opens the vendor only within this radius around the bars at Oozla X297, Y418, Z115."
     },
     {
       "key": "debug_coords",
       "name": "Show Oozla test coordinates",
       "type": "bool",
-      "default": true,
-      "description": "Displays player X/Y/Z and distance to vendor trigger, for placement testing."
-    },
-    {
-      "key": "calibrate",
-      "name": "Allow on-site placement",
-      "type": "bool",
-      "default": true,
-      "description": "On Oozla, L3+R3+Triangle sets the interaction centre at Ratchet's position."
+      "default": false,
+      "description": "Optional developer overlay showing Ratchet's X/Y/Z position and distance to the Oozla vendor."
     }
   ]
 }
