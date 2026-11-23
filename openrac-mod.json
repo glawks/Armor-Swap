@@ -2,9 +2,9 @@
   "format": 2,
   "id": "armor-swap",
   "name": "Armor Swap",
-  "version": "0.1.0-dev.4",
+  "version": "0.1.0-dev.5",
   "author": "glawks",
-  "description": "RAC2 armour appearance selector with Triangle vendor interaction at the Oozla bars.",
+  "description": "RAC2 cosmetic armour selector: all appearances available, real armour protection unchanged.",
   "license": "MIT",
   "homepage": "https://github.com/glawks/Armor-Swap",
   "api": "1.20",
@@ -22,7 +22,7 @@
       "name": "Visible armour",
       "type": "choice",
       "default": "auto",
-      "description": "Fallback for saves without an in-game cosmetic selection. Changes in the Oozla popup are stored with each game save.",
+      "description": "Default cosmetic appearance on a save with no in-game preference. All visual armour tiers can be chosen even before buying them.",
       "choices": [
         {
           "value": "auto",

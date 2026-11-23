@@ -40,7 +40,7 @@ struct Session {
     armor_swap::Zone zone{297.0f, 418.0f, 115.0f, 8.0f, 5.0f};
     bool near = false, popup = false, overlay_installed = false;
     bool debug_coords = false, force_restore = false;
-    int owned = -1, row = 0, warmup = 0, last_level = -2;
+    int owned = -1, last_logged_protection = -1, row = 0, warmup = 0, last_level = -2;
     int failed_level = -2, failed_from = -1, failed_to = -1;
     std::uint16_t last_buttons = 0;
     std::uint32_t loads = ~0u;
@@ -107,7 +107,7 @@ void draw_overlay(void*, const openrac_overlay* overlay) {
     const int owned = (ui >> 12) & 7;
     const int row = (ui >> 8) & 7;
     char stat[84];
-    std::snprintf(stat, sizeof stat, "Protection: %s", armor_swap::kNames[owned]);
+    std::snprintf(stat, sizeof stat, "Saved protection: %s", armor_swap::kNames[owned]);
     centered(overlay, 256, 143, 16, 0xEED59CFFu, stat);
 
     const int count = armor_swap::row_count(owned);
@@ -152,7 +152,7 @@ void restore_from_save() {
 }
 void choose() {
     const int tier = armor_swap::row_to_tier(s.row, s.owned);
-    if (tier < -1 || tier > s.owned) return;
+    if (tier < -1 || tier > 4) return;
     s.choice = tier < 0 ? "auto" : std::to_string(tier);
     const std::uint8_t saved[2] = {kSaveFormat,
         tier < 0 ? kSaveAuto : static_cast<std::uint8_t>(tier)};
@@ -251,6 +251,14 @@ void on_frame() {
     }
     if (s.warmup < kWarmup) ++s.warmup;
     s.owned = get_owned();
+    // This signed 16-bit field is what RAC2's AdjustPlayerHealth uses,
+    // unlike the loaded model pack (which can be any chosen appearance).
+    if (s.owned >= 0 && s.owned <= 4 && s.owned != s.last_logged_protection) {
+        s.mod->info("Armour protection in game memory is tier " + std::to_string(s.owned) +
+                    " (" + armor_swap::kNames[s.owned] + "); "
+                    "cosmetic looks 0-4 are available independently");
+        s.last_logged_protection = s.owned;
+    }
     if (s.owned < 0 || s.owned > 4) {
         s.popup = false; s.near = false; s.pose_valid = false;
         publish_ui(status.level, status.phase);
@@ -294,7 +302,7 @@ void load(openrac::Mod& mod) {
     mod.on_save_data([] { restore_from_save(); });
     mod.on_pad(on_pad);
     mod.on_frame(on_frame);
-    mod.info("Armor Swap 0.1.0-dev.4: Triangle vendor overlay + fixed Oozla bars position");
+    mod.info("Armor Swap 0.1.0-dev.5: all visual armour tiers enabled, protection value read-only");
 }
 }
-OPENRAC_MOD_CPP("armor-swap", "0.1.0-dev.4", load)
+OPENRAC_MOD_CPP("armor-swap", "0.1.0-dev.5", load)

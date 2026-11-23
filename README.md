@@ -1,6 +1,6 @@
 # Armor Swap — RAC2 armour transmog
 
-Change Ratchet's **visible** armour without touching the strongest armour purchased or its damage reduction. The visual model-swapping mechanism has been tested in-game. This **v0.1.0-dev.4 test** replaces the old invisible HUD/Select popup with a proper drawn vendor-style panel.
+Change Ratchet's **visible** armour without touching the strongest armour purchased or its damage reduction. The visual model-swapping mechanism has been tested in-game. This **v0.1.0-dev.5 test** keeps the working Triangle/Y vendor popup and permits all cosmetic armour looks on every save.
 
 ## Oozla gameplay vendor — test
 
@@ -8,7 +8,13 @@ Change Ratchet's **visible** armour without touching the strongest armour purcha
 - When within range, a dark-blue **Y / TRIANGLE : ARMOUR SWAP** interaction prompt appears.
 - **Press Triangle / Xbox Y** to open the full panel; D-pad Up/Down moves the selection, Cross/Xbox A equips the selected appearance, Circle/Xbox B or Triangle closes.
 - The modal only captures pad buttons while open and inside the trigger area. **Select / Back is not used.** Outside the trigger area, normal controls work.
-- Only armour already purchased can be selected; protection and purchases remain untouched.
+- **All five armour looks can be selected**, even on a brand-new save. The protection value and purchases remain untouched.
+
+### Cosmetic selection versus protection
+
+**Every appearance is available immediately**: Original suit, Tetrafiber, Duraplate, Electrosteel, and Carbonox. The `Default (strongest)` option switches the visual model back to the armour the game currently records as equipped. The player's actual damage reduction remains whatever the game already had.
+
+The panel's **Saved protection** line reflects the game's native protection field (a signed 16-bit value at the RAC2 equipped-armour address, the same field used by `AdjustPlayerHealth`). It does **not** represent which cosmetic appearances are unlocked. If a genuinely fresh save still reports Carbonox, check the OpenRAC game log for `Armour protection in game memory is tier`. That indicates what the game reports, rather than what this mod has granted; this mod never writes the protection field.
 
 ### Fixed location by the bars
 

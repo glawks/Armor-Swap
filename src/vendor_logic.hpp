@@ -21,13 +21,15 @@ constexpr const char* kNames[] = {
     "Original suit", "Tetrafiber", "Duraplate", "Electrosteel", "Carbonox"
 };
 constexpr int row_count(int owned) noexcept {
-    return owned >= 0 && owned <= 4 ? owned + 2 : 0;
+    // Default look + five cosmetic looks, on every valid save.
+    return owned >= 0 && owned <= 4 ? 6 : 0;
 }
 constexpr int row_to_tier(int row, int owned) noexcept {
     return row >= 0 && row < row_count(owned) ? row - 1 : -2;
 }
 constexpr int row_for(int tier, int owned) noexcept {
-    return tier >= 0 && tier <= owned ? tier + 1 : 0;
+    return owned >= 0 && owned <= 4 && tier >= 0 && tier <= 4
+        ? tier + 1 : 0;
 }
 constexpr int cycle_row(int row, int delta, int owned) noexcept {
     const int count = row_count(owned);
