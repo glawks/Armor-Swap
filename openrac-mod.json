@@ -2,9 +2,9 @@
   "format": 2,
   "id": "armor-swap",
   "name": "Armor Swap",
-  "version": "0.1.0-native.1",
+  "version": "0.1.0-native.2",
   "author": "glawks",
-  "description": "Experimental native RAC2 armour vendor at Oozla; cosmetic only, no purchases.",
+  "description": "Test of RAC2 native vendor using safe game mode transitions and Cross-to-equip cosmetics.",
   "license": "MIT",
   "homepage": "https://github.com/glawks/Armor-Swap",
   "api": "1.34",
@@ -67,5 +67,10 @@
       "default": false,
       "description": "Optional developer overlay showing Ratchet's X/Y/Z position and distance to the Oozla vendor."
     }
+  ],
+  "hooks": [
+    "rac2.armor_vendor.build_list",
+    "rac2.armor_vendor.buy",
+    "rac2.vendor.preview"
   ]
 }

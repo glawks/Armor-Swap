@@ -22,21 +22,23 @@ struct Disc {
     std::uint32_t progress, loaded_pack, vendor_ui, game_mode;
     std::array<std::uint32_t, 4> special_skin_flags;
     const char* load_pack;
-    const char* open_vendor;
+    const char* request_mode;
 };
 constexpr Disc kDiscs[] = {
     {"ntsc", 0x001A79F8u, 0x001A7290u, 0x0021F240u, 0x001A8BB0u,
         {0x001A7A49u, 0x001A7A42u, 0x001A7A4Bu, 0x001A7A4Au},
-        "func_002923C0", "func_002F8178"},
+        "func_002923C0", "func_002B49E0"},
     {"pal", 0x001A7A80u, 0x001A7310u, 0x0021F240u, 0x001A8C60u,
         {0x001A7AD1u, 0x001A7ACAu, 0x001A7AD3u, 0x001A7AD2u},
-        "func_00292CD0", "func_002F90E8"},
+        "func_00292CD0", "func_002B5590"},
     {"ntsc2", 0x001A7A00u, 0x001A7290u, 0x0021F1C0u, 0x001A8BB0u,
         {0x001A7A51u, 0x001A7A4Au, 0x001A7A53u, 0x001A7A52u},
-        "func_00292C70", "func_002F8FF8"}
+        "func_00292C70", "func_002B58F8"}
 };
 using LoadPack = void (*)(std::uint32_t);
-using OpenVendor = void (*)(std::uint32_t);
+// RAC2 request_begin_slot(index, push_previous_mode, argA, argB, completion).
+// Requesting mode 5 via the game's state stack is mandatory for clean exit.
+using RequestMode = int (*)(int, int, std::uint32_t, int, std::uint32_t);
 constexpr int kOozla = 1, kWarmup = 15;
 constexpr std::uint8_t kSaveFormat = 1, kSaveAuto = 255;
 
@@ -44,7 +46,7 @@ struct Session {
     openrac::Mod* mod = nullptr;
     const Disc* disc = nullptr;
     LoadPack loader = nullptr;
-    OpenVendor open_vendor = nullptr;
+    RequestMode request_mode = nullptr;
     armor_swap::Zone zone{297.f, 418.f, 115.f, 8.f, 5.f};
     std::string fallback = "auto";
     std::string choice = "auto";
@@ -75,6 +77,15 @@ void overlay_draw(void*, const openrac_overlay* overlay) {
             g_x.load(), g_y.load(), g_z.load(), g_dist.load());
         overlay->rect(overlay->context, 8, 8, 315, 25, 0x081E35D9u);
         overlay->text(overlay->context, 14, 12, 13, 0xC8E7FFFFu, message);
+    }
+    if (flags & 4u) {
+        // Cover the native armour shop's "Can't buy any armor" status:
+        // this panel is an appearance selector, not a purchase screen.
+        overlay->rect(overlay->context, 119, 393, 275, 30, 0x071829F5u);
+        const char* title = "A / CROSS : EQUIP    Y / TRIANGLE : EXIT";
+        const float width = overlay->text_width(overlay->context, 13, title);
+        overlay->text(overlay->context, 256 - width / 2.f, 400, 13,
+                      0xE0EFFBFFu, title);
     }
     if (!(flags & 1u)) return;
     overlay->rect(overlay->context, 142, 351, 228, 40, 0x071829DFu);
@@ -218,9 +229,26 @@ void on_pad(int port, std::uint8_t* bytes, int size) {
     if (s.near && !s.native_active && !s.requested &&
         (press & armor_swap::kTriangle)) {
         s.requested = true;
-        // Only consume the single Triangle press that opens the vendor.
-        // The real game's vendor now owns its menu and the rest of the pad.
+        // Only consume Triangle when opening; outside this zone pad is untouched.
         bytes[1] |= 0x10u;
+    } else if (our_vendor() && (press & armor_swap::kCross) &&
+               vendor_field(armor_swap::native::kDialog) == 0) {
+        // The vanilla shop refuses all purchases when wearing Carbonox.
+        // Bypass its PURCHASE path completely: Cross chooses appearance from
+        // the native preview's selected row, NOT an armour transaction.
+        const int row = vendor_field(armor_swap::native::kCursor);
+        if (row >= 0 && row < armor_swap::native::kCount) {
+            const auto base = vendor_addr();
+            const auto entry = base + armor_swap::native::kEntries +
+                static_cast<std::uint32_t>(row) * armor_swap::native::kRowBytes;
+            const int tier = s.mod->memory().read<std::int32_t>(entry + 8u);
+            const int icon = s.mod->memory().read<std::int32_t>(entry);
+            if (tier == row && icon == 0xEA92 + tier) {
+                set_appearance(tier);
+                // Cross MUST NOT reach the game's actual purchase mechanism.
+                bytes[1] |= 0x40u;
+            }
+        }
     }
 }
 
@@ -293,7 +321,7 @@ void on_frame() {
         if (mode == armor_swap::native::kVendorGameMode) {
             s.native_seen = true;
             enforce_protection();
-        } else if (s.native_seen || ++s.native_ticks > 8) {
+        } else if (s.native_seen || ++s.native_ticks > 180) {
             enforce_protection();
             s.mod->info("Native armour vendor closed; restoring saved cosmetic look");
             s.native_active = false;
@@ -330,27 +358,30 @@ void on_frame() {
             pose.position[0], pose.position[1], s.zone))));
     }
     const unsigned shown = (s.near ? 1u : 0u) |
-        ((s.debug_coords && status.level == kOozla && mode == 0) ? 2u : 0u);
+        ((s.debug_coords && status.level == kOozla && mode == 0) ? 2u : 0u) |
+        ((s.native_active && s.list_ready &&
+          mode == armor_swap::native::kVendorGameMode) ? 4u : 0u);
     g_prompt.store(shown, std::memory_order_release);
 
     // Dispatch only on the game thread after a normal gameplay tick.
     if (s.requested) {
         s.requested = false;
         if (s.near && mode == 0 && !s.native_active) {
-            s.native_active = true;
-            s.native_seen = false;
-            s.list_ready = false;
-            s.native_ticks = 0;
-            s.protection_before = s.owned;
-            s.open_vendor(3u);  // The real Megacorp armour vendor, mode 3.
-            if (game_mode() != armor_swap::native::kVendorGameMode ||
-                !s.list_ready) {
-                s.mod->warn("Native armour vendor did not open in mode 3 with cosmetic rows");
-                s.native_active = false;
+            // request_begin_slot(5, 1, 3, 0, nullptr) performs the ordinary
+            // mode-5 transition and pushes gameplay mode onto the return stack.
+            // Calling OpenVendorMenu(3) directly skipped that transition and
+            // could leave Ratchet frozen after closing the menu.
+            const int started = s.request_mode(5, 1, 3u, 0, 0u);
+            if (started == 0) {
+                s.native_active = true;
+                s.native_seen = false;
                 s.list_ready = false;
+                s.native_ticks = 0;
+                s.protection_before = s.owned;
+                s.mod->info("Requested native RAC2 armour vendor through mode stack");
             } else {
-                s.native_seen = true;
-                s.mod->info("Opened the native RAC2 armour vendor at the Oozla bars");
+                s.mod->warn("Native armour vendor request was refused: " +
+                            std::to_string(started));
             }
             g_prompt.store(0, std::memory_order_release);
         }
@@ -371,7 +402,7 @@ void load(openrac::Mod& mod) {
     s.zone.radius = static_cast<float>(mod.setting<double>("vendor_radius"));
     s.debug_coords = mod.setting<bool>("debug_coords");
     s.loader = mod.required_function<LoadPack>(disc->load_pack);
-    s.open_vendor = mod.required_function<OpenVendor>(disc->open_vendor);
+    s.request_mode = mod.required_function<RequestMode>(disc->request_mode);
     if (!mod.has_overlay() || !mod.on_overlay(overlay_draw))
         throw openrac::Error("Native vendor prototype needs OpenRAC's overlay API");
 
@@ -384,7 +415,7 @@ void load(openrac::Mod& mod) {
     mod.on_save_data([] { restore_from_save(); });
     mod.on_pad(on_pad);
     mod.on_frame(on_frame);
-    mod.info("Armor Swap native vendor TEST: Oozla, SDK 1.34, five free cosmetic looks");
+    mod.info("Armor Swap native vendor TEST 2: mode-stack entry, Cross equips cosmetic");
 }
 }  // namespace
-OPENRAC_MOD_CPP("armor-swap", "0.1.0-native.1", load)
+OPENRAC_MOD_CPP("armor-swap", "0.1.0-native.2", load)

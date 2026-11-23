@@ -17,6 +17,12 @@ assert "openrac::rac2::Vendor_Preview" in source
 assert "s.mod->memory().write(answer, std::int32_t{0});" in source, (
     "Native purchase confirmation must be cancelled"
 )
+assert "request_mode(5, 1, 3u, 0, 0u)" in source
+assert "s.open_vendor(" not in source
+assert "bytes[1] |= 0x40u;" in source, "Cross should not reach native purchase path"
+assert set(manifest["hooks"]) == {
+    "rac2.armor_vendor.build_list", "rac2.armor_vendor.buy", "rac2.vendor.preview"
+}
 # The only allowed write to the game's progress block is an emergency
 # restoration of the value recorded BEFORE opening our cosmetic vendor.
 assert source.count("memory().write(base + 0x20u") == 1, (
