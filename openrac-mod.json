@@ -2,9 +2,9 @@
   "format": 2,
   "id": "armor-swap",
   "name": "Armor Swap",
-  "version": "0.1.0-dev.1",
+  "version": "0.1.0-dev.2",
   "author": "glawks",
-  "description": "Experimental RAC2 visual armour selector that preserves purchased armour protection.",
+  "description": "In-game Oozla landing armour selection popup; changes appearance without changing purchased armour protection.",
   "license": "MIT",
   "homepage": "https://github.com/glawks/Armor-Swap",
   "api": "1.20",
@@ -22,7 +22,7 @@
       "name": "Visible armour",
       "type": "choice",
       "default": "auto",
-      "description": "Cosmetic only. Choose a previously acquired armour; applies after restarting the game. Unavailable tiers are ignored.",
+      "description": "Fallback for saves without an in-game cosmetic selection. Changes in the Oozla popup are stored with each game save.",
       "choices": [
         {
           "value": "auto",
@@ -49,6 +49,13 @@
           "name": "Armour tier 4"
         }
       ]
+    },
+    {
+      "key": "oozla_popup",
+      "name": "Oozla test popup",
+      "type": "bool",
+      "default": true,
+      "description": "Show armour selection once when entering Oozla's landing area. Back/Select reopens it nearby."
     }
   ]
 }

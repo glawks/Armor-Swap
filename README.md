@@ -1,49 +1,46 @@
 # Armor Swap (experimental)
 
-Choose Ratchet's visible armour in **Ratchet & Clank 2: Going Commando** without reducing the protection from the strongest armour you own.
+RAC2 armour transmog: select how Ratchet looks **without changing the saved armour tier or its damage reduction**. The first visual model swap was confirmed working in-game; the **new Oozla popup is a test feature, not yet tested**.
 
-> **Development test build – NOT a verified release.** This mod calls a decompiled game model-loading routine at runtime. It has not yet been tested in-game. Back up your save and disable the mod if it causes instability.
+## Oozla landing test vendor
 
-## How it works
+The prototype shows an on-screen **ARMOUR SWAP** popup near the ship landing platform/walkway on **Oozla**, based on documented level-start coordinates (293.84, 411.66, 115).
 
-RAC2 stores gameplay armour and the loaded visual armour pack separately. Armor Swap only reads the player's equipped armour (the protection value saved by the game), and asks the game's own armour model loader to load another visual pack. It **never writes** to the purchased armour/protection value.
+- **Auto-popup:** When entering the landing area it should appear once (turn off `Oozla test popup` in launcher settings if unwanted).
+- **Reopen:** Press **Select / Back** while near the ship.
+- **Navigate:** D-pad Up/Down; **Cross / Xbox A** to equip; **Circle / Xbox B**, Triangle or Select to close.
+- **Armour available:** Default (best owned), Original suit, Tetrafiber, Duraplate, Electrosteel, Carbonox. Only tiers already acquired are selectable. The player keeps the strongest purchased armour's protection.
 
-In **OpenRAC Launcher → Mods → Armor Swap**, choose a **Visible armour** setting: Automatic (default), Original suit, or one of tiers 1–4. The chosen tier must be no higher than the armour in the save. An unavailable tier is ignored, not granted or unlocked. Changes take effect at the next game launch. Built-in special skins are left alone.
+The menu consumes gamepad buttons and sticks while open so moving the selection shouldn't also board the ship or move Ratchet. It is a **gameplay HUD text popup**, not yet a physical vendor NPC or a native shop panel, and doesn't charge bolts.
 
-The first prototype waits for 15 consecutive normal gameplay ticks before asking the model loader to update the look. It will not deliberately load models during the vendor menu or other non-gameplay states.
+## Persistence and protection
+
+In-game armour choices are stored in **OpenRAC's mod-specific per-save data**. **Save normally in-game** to keep the cosmetic selection for your next session. Existing saves without a cosmetic choice fall back to the launcher's `Visible armour` setting. Disabling this mod does not overwrite your game's actual armour. The model is loaded using RAC2's own armouring routine, without modifying the protection/stat field.
 
 ## Testing
 
-Install the ZIP from a successful `dev` branch Actions run (look for `mod-release` or a platform-specific `mod-*` artifact), using the OpenRAC launcher. These are **build artifacts, not public Releases**.
+1. Back up your save. Get the newest **dev** workflow artifact at [GitHub Actions](https://github.com/glawks/Armor-Swap/actions?query=branch%3Adev): `mod-release` contains a combined ZIP for all six platforms.
+2. Install the combined ZIP through the OpenRAC launcher. Travel to Oozla, near the ship where your screenshots were taken.
+3. Check whether the popup appears, whether the choices and button prompts respond, and whether the selected look appears immediately.
+4. Exit and reopen the popup, travel to another planet and back, then save and reload. Verify that the strongest purchased armour still grants its normal protection.
 
-Suggested first test:
+If no popup appears, the proximity radius (45 units in the horizontal plane, 24 units vertically) may require calibration. Share a log and ideally a position readout. These builds are untested development artifacts, not stable releases.
 
-1. Back up a save with high-tier armour, ideally tier 4.
-2. Set **Visible armour** to **Original suit**; restart RAC2.
-3. Confirm the original model appears, while enemy damage is still reduced according to the equipped high-tier armour.
-4. Travel to another planet, die and respawn, visit the armour vendor, and reload the save. Watch for model flicker or crashes.
-5. Check the OpenRAC log for `Armor Swap` messages and share results before any release.
+## Supported
 
-RAC2 discs targeted: NTSC-U v1.01 (`ntsc`), PAL (`pal`), NTSC-U v2.00 (`ntsc2`). OpenRAC mod SDK/API **1.20**. Intended builds: Windows x64, Linux x64/ARM64, macOS x64/ARM64, Android ARM64.
+RAC2 NTSC-U v1.01, PAL, NTSC-U v2.00. OpenRAC mod SDK/API 1.20. Native CI builds for Windows x64, Linux x64/ARM64, macOS x64/ARM64, and Android ARM64.
+
+`main` is intentionally not released; `dev` builds test artifacts and does not create a public GitHub Release.
 
 ## Development
 
-`main` has no public version yet; all prototype code and downloadable test builds are on `dev`. The workflow is adapted from glawks's Vendor Buy All workflow. It builds six platforms; only a stable version merged to `main` can create a GitHub Release.
-
-```bash
+```sh
 python tools/fetch_sdk.py
 cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
 cmake --build build --parallel
 ctest --test-dir build --output-on-failure
 ```
 
-The SDK is pinned in `sdk.lock`. No copyrighted game assets are distributed. MIT licensed; see `LICENSE`.
+The save's equipped armour data is always read-only: NTSC `0x001A7A18`, PAL `0x001A7AA0`, NTSC2 `0x001A7A20`. Visual model pack: NTSC/NTSC2 `0x001A7290`, PAL `0x001A7310`.
 
-## Engineering notes
-
-- Player protection: NTSC `0x001A7A18`, PAL `0x001A7AA0`, NTSC2 `0x001A7A20`.
-- Loaded model pack: NTSC/NTSC2 `0x001A7290`, PAL `0x001A7310`.
-- Loader: NTSC `func_002923C0`, PAL `func_00292CD0`, NTSC2 `func_00292C70`.
-- The runtime loader call and availability of these named functions **still need in-game verification**; if they cannot be resolved, the SDK will refuse to load the mod rather than guessing another address.
-
-The next version could expose an in-game armour selection UI and store a cosmetic preference per save, once this prototype's rendering and damage behaviour are confirmed.
+MIT licensed. No copyrighted game assets included.
