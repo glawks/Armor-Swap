@@ -1,47 +1,42 @@
-# Armor Swap — RAC2 armour transmog
+# Armor Swap — Native RAC2 Armour Vendor Prototype
 
-Change Ratchet's **visible** armour without touching the strongest armour purchased or its damage reduction. The visual model-swapping mechanism has been tested in-game. This **v0.1.0-dev.5 test** keeps the working Triangle/Y vendor popup and permits all cosmetic armour looks on every save.
+**Experimental test build `0.1.0-native.1` — NOT a stable release.**
+This branch starts from the **tested dev5 commit** and does not modify it, `dev`, or `main`.
 
-## Oozla gameplay vendor — test
+The previous test confirmed that cosmetic Carbonox and the original suit keep the game's real protection unchanged and that saves remain intact. This branch **replaces only the custom on-screen selection panel with RAC2's native armour vendor**.
 
-- **Approach the ship landing bars/walkway on Planet Oozla.** The trigger uses a *tight* radius (default 8 units) and vertical limit (5 units), no longer the old 45-unit area.
-- When within range, a dark-blue **Y / TRIANGLE : ARMOUR SWAP** interaction prompt appears.
-- **Press Triangle / Xbox Y** to open the full panel; D-pad Up/Down moves the selection, Cross/Xbox A equips the selected appearance, Circle/Xbox B or Triangle closes.
-- The modal only captures pad buttons while open and inside the trigger area. **Select / Back is not used.** Outside the trigger area, normal controls work.
-- **All five armour looks can be selected**, even on a brand-new save. The protection value and purchases remain untouched.
+## Test the real armour vendor
 
-### Cosmetic selection versus protection
+1. Back up your RAC2 save. Install the ZIP from a successful `native-vendor-dev` [Actions run](https://github.com/glawks/Armor-Swap/actions?query=branch%3Anative-vendor-dev).
+2. Stand at the Oozla bars near **X297 Y418 Z115**, as for dev5. **Triangle/Y** should still show the in-world interaction prompt.
+3. Press Triangle/Y to open RAC2's **actual Megacorp armour vendor UI** with the rotating Ratchet model. It offers all **five cosmetic looks** (Original suit, Tetrafiber, Duraplate, Electrosteel, Carbonox), even if unpurchased in the actual game.
+4. Navigate using the game's *native* vendor controls. For this prototype the vendor still uses its normal **zero-bolt purchase confirmation wording**. Confirm an armour to choose its **appearance**, without paying bolts or buying the armour tier. Back out of the vendor normally.
+5. After returning to gameplay, Ratchet should use the chosen appearance with unchanged saved protection.
 
-**Every appearance is available immediately**: Original suit, Tetrafiber, Duraplate, Electrosteel, and Carbonox. The `Default (strongest)` option switches the visual model back to the armour the game currently records as equipped. The player's actual damage reduction remains whatever the game already had.
+## Technical and safety notes
 
-The panel's **Saved protection** line reflects the game's native protection field (a signed 16-bit value at the RAC2 equipped-armour address, the same field used by `AdjustPlayerHealth`). It does **not** represent which cosmetic appearances are unlocked. If a genuinely fresh save still reports Carbonox, check the OpenRAC game log for `Armour protection in game memory is tier`. That indicates what the game reports, rather than what this mod has granted; this mod never writes the protection field.
+- The test uses OpenRAC's **SDK 1.34** and three hooks: `rac2.armor_vendor.build_list`, `rac2.armor_vendor.buy`, `rac2.vendor.preview`. These hooks are required; the mod refuses loading on an older port that lacks them.
+- Calls the game's own **OpenVendorMenu(mode 3)** (same Megacorp vendor class as in the retail game), rather than constructing an imitation window.
+- While the **Oozla test vendor** is active, it overwrites the temporary vendor **menu list** with five zero-bolt armour rows, *not* the saved armour or bolt values.
+- On confirming a choice, the purchase hook writes the mod-only cosmetic preference, then changes the **purchase answer** from Yes to No before forwarding to the original handler. Normal armour vendors elsewhere remain untouched.
+- A native armour vendor ordinarily restores the saved armour value on close. This test checks protection against the value recorded at entry. If it unexpectedly changes, a **safety rollback restores the original 0–4 armour tier in game memory and logs a warning**. This rollback is the *only case* when the mod writes the base game's armour value; it is an emergency safeguard, not part of cosmetic selection. Test with a backed-up save.
+- The game's native preview normally skips reloading pack 0; this prototype explicitly reloads it to show the Original suit if the current cosmetic is different.
+- The original five-model list is not changed for other armour vendors, including their prices and progression.
+- Cosmetic choices are stored in OpenRAC's mod-specific per-save data, as in dev5. Game save progression is never intentionally upgraded.
+- Other mods that replace the armour vendor's purchase/list handling may conflict; test without them initially.
+- The **native vendor interaction, especially its confirmation flow and preview, has not yet been tested in-game**. Build success is only a first step.
 
-### Fixed location by the bars
+If the menu fails, exits incorrectly, gives permanent armour, charges bolts, or hangs input, disable this prototype and return to the known-good dev5 build. Do not use it as your release version.
 
-The interaction centre is now **Oozla X: 297, Y: 418, Z: 115**, using the position shown in the in-game screenshot. These displayed coordinates are rounded, so the precise centre may differ slightly from Ratchet's position. The interaction has an 8-unit horizontal radius and a 5-unit vertical limit.
+## Building
 
-The old **L3 + R3 + Triangle calibration shortcut has been removed** because R3 opens the game's map. No calibration is necessary: stand near the bars and press **Triangle/Y** normally. You can still adjust `Vendor interaction radius` in mod settings if needed.
+Pinned OpenRAC mod SDK **1.34.0**, verified by SHA-256. RAC2 NTSC/PAL/NTSC2. CI builds Windows, Linux, macOS and Android (six architectures).
 
-The X/Y/Z debug strip is now **off by default**. Enable `Show Oozla test coordinates` only for troubleshooting. The vendor appears only on Oozla, never over the map or elsewhere in the game.
+```bash
+python tools/fetch_sdk.py
+cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+cmake --build build
+ctest --test-dir build --output-on-failure
+```
 
-### What changed from v0.1.0-dev.2
-
-- Removed the auto-opening, invisible HUD text popup.
-- Removed Select/Back as an interaction key.
-- Draws a **real overlay** with background, title, selected-row highlight, hints and the current protection value, using OpenRAC's supported game overlay API.
-- Swallows input **only** for the active popup or Triangle pressed within range; all other controls pass through unchanged.
-- Only enables this on Oozla during normal gameplay; not in the map, another menu, cutscenes, or planets elsewhere.
-
-### Limits
-
-This is a **vendor-style popup overlay**, not yet a placed 3D NPC or the game's underlying armour vendor script. There is no bolt purchase. OpenRAC's native `ui_page` API is opened from the game's existing options menus rather than directly from arbitrary gameplay, so an overlay is the stable way to test an in-world trigger. The panel's trigger has been moved to the player's confirmed position at the bars; this new default still needs an in-game test.
-
-## Install and test
-
-From the successful `dev` [GitHub Actions build](https://github.com/glawks/Armor-Swap/actions?query=branch%3Adev), download the `mod-release` artifact, extract it and install `armor-swap-0.1.0-dev.3.zip` in OpenRAC.
-
-Back up a save before testing. Change the appearance, move away and come back, then save/reload and confirm both the cosmetic selection and damage reduction. Changes to appearance are saved with **mod-specific save data**, not the base game armour state.
-
-OpenRAC SDK 1.20, RAC2 NTSC/PAL/NTSC2. Six-platform CI (Windows, Linux, macOS and Android ARM64). `main` remains untouched; test builds only from `dev`.
-
-MIT licensed; no copyrighted game assets included.
+MIT licensed. No proprietary game assets included.
